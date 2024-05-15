@@ -6,7 +6,6 @@ from .base_graph import BaseGraph
 from ..nodes import (
     FetchNode,
     ParseNode,
-    RAGNode,
     GenerateScraperNode
 )
 from .abstract_graph import AbstractGraph
@@ -60,33 +59,20 @@ class ScriptCreatorGraph(AbstractGraph):
 
         fetch_node = FetchNode(
             input="url | local_dir",
-            output=["doc"],
-            node_config={
-                "headless": self.headless,
-                "verbose": self.verbose
-            }
+            output=["doc", "link_urls", "img_urls"],
         )
         parse_node = ParseNode(
             input="doc",
             output=["parsed_doc"],
             node_config={"chunk_size": self.model_token,
-                         "verbose": self.verbose
+                         "verbose": self.verbose,
+                         "parse_html": False
                          }
         )
-        rag_node = RAGNode(
-            input="user_prompt & (parsed_doc | doc)",
-            output=["relevant_chunks"],
-            node_config={
-                "llm": self.llm_model,
-                "embedder_model": self.embedder_model,
-                "verbose": self.verbose
-            }
-        )
         generate_scraper_node = GenerateScraperNode(
-            input="user_prompt & (relevant_chunks | parsed_doc | doc)",
+            input="user_prompt & (doc)",
             output=["answer"],
-            node_config={"llm": self.llm_model,
-                         "verbose": self.verbose},
+            node_config={"llm_model": self.llm_model},
             library=self.library,
             website=self.source
         )
@@ -95,13 +81,11 @@ class ScriptCreatorGraph(AbstractGraph):
             nodes=[
                 fetch_node,
                 parse_node,
-                rag_node,
                 generate_scraper_node,
             ],
             edges=[
                 (fetch_node, parse_node),
-                (parse_node, rag_node),
-                (rag_node, generate_scraper_node)
+                (parse_node, generate_scraper_node),
             ],
             entry_point=fetch_node
         )
@@ -117,4 +101,4 @@ class ScriptCreatorGraph(AbstractGraph):
         inputs = {"user_prompt": self.prompt, self.input_key: self.source}
         self.final_state, self.execution_info = self.graph.execute(inputs)
 
-        return self.final_state.get("answer", "No answer found.")
+        return self.final_state.get("answer", "No answer found ")

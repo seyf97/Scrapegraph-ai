@@ -2,7 +2,7 @@
 Module for generating the answer node
 """
 # Imports from standard library
-from typing import List
+from typing import List, Optional
 from tqdm import tqdm
 
 # Imports from Langchain
@@ -22,14 +22,14 @@ class GenerateAnswerCSVNode(BaseNode):
     an answer.
 
     Attributes:
-        llm: An instance of a language model client, configured for generating answers.
+        llm_model: An instance of a language model client, configured for generating answers.
         node_name (str): The unique identifier name for the node, defaulting 
         to "GenerateAnswerNodeCsv".
         node_type (str): The type of the node, set to "node" indicating a 
         standard operational node.
 
     Args:
-        llm: An instance of the language model client (e.g., ChatOpenAI) used 
+        llm_model: An instance of the language model client (e.g., ChatOpenAI) used 
         for generating answers.
         node_name (str, optional): The unique identifier name for the node. 
         Defaults to "GenerateAnswerNodeCsv".
@@ -39,17 +39,17 @@ class GenerateAnswerCSVNode(BaseNode):
                         updating the state with the generated answer under the 'answer' key.
     """
 
-    def __init__(self, input: str, output: List[str], node_config: dict,
+    def __init__(self, input: str, output: List[str], node_config: Optional[dict] = None,
                  node_name: str = "GenerateAnswer"):
         """
         Initializes the GenerateAnswerNodeCsv with a language model client and a node name.
         Args:
-            llm: An instance of the OpenAIImageToText class.
+            llm_model: An instance of the OpenAIImageToText class.
             node_name (str): name of the node
         """
         super().__init__(node_name, "node", input, output, 2, node_config)
-        self.llm_model = node_config["llm"]
-        self.verbose = True if node_config is None else node_config.get(
+        self.llm_model = node_config["llm_model"]
+        self.verbose = False if node_config is None else node_config.get(
             "verbose", False)
 
     def execute(self, state):
@@ -111,6 +111,7 @@ class GenerateAnswerCSVNode(BaseNode):
         following content from a csv.
         You are now asked to answer a user question about the content you have scraped.\n 
         You have scraped many chunks since the csv is big and now you are asked to merge them into a single answer without repetitions (if there are any).\n
+        Make sure that if a maximum number of items is specified in the instructions that you get that maximum number and do not exceed it. \n
         Output instructions: {format_instructions}\n 
         User question: {question}\n
         csv content: {context}\n 
